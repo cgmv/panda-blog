@@ -1,2 +1,98 @@
 <?xml version="1.0" encoding="utf-8"?>
-<?xml-stylesheet type="text/xsl" href="assets/xml/rss.xsl" media="all"?><rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/" version="2.0"><channel><title>Panda Blog</title><link>https://blog.itoaster.net/</link><description>Tech Blog</description><atom:link type="application/rss+xml" href="https://blog.itoaster.net/rss.xml" rel="self"></atom:link><language>en</language><lastBuildDate>Sun, 25 Sep 2016 13:57:48 GMT</lastBuildDate><generator>https://getnikola.com/</generator><docs>http://blogs.law.harvard.edu/tech/rss</docs><item><title>Letsencrypt Install and Renewal</title><link>https://blog.itoaster.net/posts/letsencrypt-install-and-renewal/</link><dc:creator>Chris Viola</dc:creator><description>&lt;p&gt;Write your post here.&lt;/p&gt;</description><category>letsencrypt</category><category>nginx</category><guid>https://blog.itoaster.net/posts/letsencrypt-install-and-renewal/</guid><pubDate>Sun, 25 Sep 2016 13:56:37 GMT</pubDate></item></channel></rss>
+<?xml-stylesheet type="text/xsl" href="assets/xml/rss.xsl" media="all"?><rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Panda Blog</title><link>https://blog.itoaster.net/</link><description>Tech Blog</description><atom:link type="application/rss+xml" href="https://blog.itoaster.net/rss.xml" rel="self"></atom:link><language>en</language><lastBuildDate>Sun, 25 Sep 2016 15:15:07 GMT</lastBuildDate><generator>https://getnikola.com/</generator><docs>http://blogs.law.harvard.edu/tech/rss</docs><item><title>Letsencrypt Install and Renewal</title><link>https://blog.itoaster.net/posts/letsencrypt-install-and-renewal/</link><dc:creator>Chris Viola</dc:creator><description>&lt;div&gt;&lt;h3&gt;Certbot&lt;/h3&gt;
+&lt;p&gt;On my server I needed to add &lt;code&gt;jessie-backports&lt;/code&gt; to the &lt;code&gt;/etc/apt/sources.list&lt;/code&gt;.&lt;/p&gt;
+&lt;pre class="code literal-block"&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="nb"&gt;echo&lt;/span&gt; &lt;span class="s2"&gt;"deb http://httpredir.debian.org/debian jessie-backports main contrib non-free"&lt;/span&gt; &amp;gt;&amp;gt; &lt;span class="s1"&gt;'/etc/apt/sources.list'&lt;/span&gt;
+&lt;/pre&gt;
+
+
+&lt;p&gt;and run this afterwards.&lt;/p&gt;
+&lt;pre class="code literal-block"&gt;&lt;span&gt;&lt;/span&gt;sudo apt-get install certbot -t jessie-backports
+&lt;/pre&gt;
+
+
+&lt;h3&gt;Nginx&lt;/h3&gt;
+&lt;p&gt;Make sure the file &lt;code&gt;.well-known&lt;/code&gt; is reachable via &lt;code&gt;location&lt;/code&gt;.&lt;/p&gt;
+&lt;pre class="code literal-block"&gt;&lt;span&gt;&lt;/span&gt;certbot certonly -a webroot --webroot-path&lt;span class="o"&gt;=&lt;/span&gt;/usr/share/www/itoaster -d itoaster.net -d www.itoaster.net
+&lt;/pre&gt;
+
+
+&lt;p&gt;this will create the directory in your webroot thats why it needs to be reachable. &lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Cert Location&lt;/strong&gt; &lt;code&gt;/etc/letsencrypt/live/itoaster.net/&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;Its also a good idea to allow Diffie Hellmann keys so lets generate one:&lt;/p&gt;
+&lt;pre class="code literal-block"&gt;&lt;span&gt;&lt;/span&gt;sudo openssl dhparam -out /etc/ssl/certs/dhparam.pem 2048
+&lt;/pre&gt;
+
+
+&lt;p&gt;Lets take a look at the server config file under &lt;code&gt;sites-available&lt;/code&gt;.&lt;/p&gt;
+&lt;pre class="code literal-block"&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="nt"&gt;server&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="n"&gt;listen&lt;/span&gt; &lt;span class="m"&gt;80&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="err"&gt;#&lt;/span&gt; &lt;span class="n"&gt;Block&lt;/span&gt; &lt;span class="n"&gt;some&lt;/span&gt; &lt;span class="n"&gt;agents&lt;/span&gt;
+        &lt;span class="n"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="err"&gt;$&lt;/span&gt;&lt;span class="n"&gt;blockedagent&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="err"&gt;{&lt;/span&gt;
+                &lt;span class="n"&gt;return&lt;/span&gt; &lt;span class="m"&gt;403&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt;
+        &lt;span class="err"&gt;#&lt;/span&gt; &lt;span class="nt"&gt;Disable&lt;/span&gt; &lt;span class="nt"&gt;all&lt;/span&gt; &lt;span class="nt"&gt;except&lt;/span&gt; &lt;span class="nt"&gt;GET&lt;/span&gt; &lt;span class="nt"&gt;HEAD&lt;/span&gt; &lt;span class="nt"&gt;and&lt;/span&gt; &lt;span class="nt"&gt;POST&lt;/span&gt;
+        &lt;span class="nt"&gt;if&lt;/span&gt; &lt;span class="o"&gt;($&lt;/span&gt;&lt;span class="nt"&gt;request_method&lt;/span&gt; &lt;span class="o"&gt;!~&lt;/span&gt; &lt;span class="o"&gt;^(&lt;/span&gt;&lt;span class="nt"&gt;GET&lt;/span&gt;&lt;span class="o"&gt;|&lt;/span&gt;&lt;span class="nt"&gt;HEAD&lt;/span&gt;&lt;span class="o"&gt;|&lt;/span&gt;&lt;span class="nt"&gt;POST&lt;/span&gt;&lt;span class="o"&gt;)$)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+                &lt;span class="n"&gt;return&lt;/span&gt; &lt;span class="m"&gt;444&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt;
+        &lt;span class="nt"&gt;server_name&lt;/span&gt; &lt;span class="nt"&gt;itoaster&lt;/span&gt;&lt;span class="nc"&gt;.net&lt;/span&gt; &lt;span class="nt"&gt;www&lt;/span&gt;&lt;span class="nc"&gt;.itoaster.net&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt;
+        &lt;span class="nt"&gt;return&lt;/span&gt; &lt;span class="nt"&gt;301&lt;/span&gt; &lt;span class="nt"&gt;https&lt;/span&gt;&lt;span class="o"&gt;://$&lt;/span&gt;&lt;span class="nt"&gt;host&lt;/span&gt;&lt;span class="o"&gt;$&lt;/span&gt;&lt;span class="nt"&gt;request_uri&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt;
+&lt;span class="err"&gt;}&lt;/span&gt;
+
+&lt;span class="nt"&gt;server&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="err"&gt;#&lt;/span&gt; &lt;span class="n"&gt;SSL&lt;/span&gt; &lt;span class="n"&gt;configuration&lt;/span&gt;
+        &lt;span class="err"&gt;#&lt;/span&gt;
+        &lt;span class="err"&gt;#&lt;/span&gt; &lt;span class="n"&gt;Block&lt;/span&gt; &lt;span class="n"&gt;some&lt;/span&gt; &lt;span class="n"&gt;agents&lt;/span&gt;
+        &lt;span class="n"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="err"&gt;$&lt;/span&gt;&lt;span class="n"&gt;blockedagent&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="err"&gt;{&lt;/span&gt;
+                &lt;span class="n"&gt;return&lt;/span&gt; &lt;span class="m"&gt;403&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt;
+        &lt;span class="err"&gt;#&lt;/span&gt; &lt;span class="nt"&gt;Disable&lt;/span&gt; &lt;span class="nt"&gt;all&lt;/span&gt; &lt;span class="nt"&gt;except&lt;/span&gt; &lt;span class="nt"&gt;GET&lt;/span&gt; &lt;span class="nt"&gt;HEAD&lt;/span&gt; &lt;span class="nt"&gt;and&lt;/span&gt; &lt;span class="nt"&gt;POST&lt;/span&gt;
+        &lt;span class="nt"&gt;if&lt;/span&gt; &lt;span class="o"&gt;($&lt;/span&gt;&lt;span class="nt"&gt;request_method&lt;/span&gt; &lt;span class="o"&gt;!~&lt;/span&gt; &lt;span class="o"&gt;^(&lt;/span&gt;&lt;span class="nt"&gt;GET&lt;/span&gt;&lt;span class="o"&gt;|&lt;/span&gt;&lt;span class="nt"&gt;HEAD&lt;/span&gt;&lt;span class="o"&gt;|&lt;/span&gt;&lt;span class="nt"&gt;POST&lt;/span&gt;&lt;span class="o"&gt;)$)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+                &lt;span class="n"&gt;return&lt;/span&gt; &lt;span class="m"&gt;444&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt;
+
+        &lt;span class="nt"&gt;listen&lt;/span&gt; &lt;span class="nt"&gt;443&lt;/span&gt; &lt;span class="nt"&gt;ssl&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt;
+        &lt;span class="nt"&gt;listen&lt;/span&gt; &lt;span class="cp"&gt;[&lt;/span&gt;&lt;span class="p"&gt;::&lt;/span&gt;&lt;span class="cp"&gt;]&lt;/span&gt;&lt;span class="nd"&gt;:443&lt;/span&gt; &lt;span class="nt"&gt;ssl&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt;
+        &lt;span class="nt"&gt;server_name&lt;/span&gt; &lt;span class="nt"&gt;itoaster&lt;/span&gt;&lt;span class="nc"&gt;.net&lt;/span&gt; &lt;span class="nt"&gt;www&lt;/span&gt;&lt;span class="nc"&gt;.itoaster.net&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt;
+        &lt;span class="nt"&gt;ssl_certificate&lt;/span&gt; &lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;etc&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;letsencrypt&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;live&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;itoaster&lt;/span&gt;&lt;span class="nc"&gt;.net&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;fullchain&lt;/span&gt;&lt;span class="nc"&gt;.pem&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt;
+        &lt;span class="nt"&gt;ssl_certificate_key&lt;/span&gt; &lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;etc&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;letsencrypt&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;live&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;itoaster&lt;/span&gt;&lt;span class="nc"&gt;.net&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;privkey&lt;/span&gt;&lt;span class="nc"&gt;.pem&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt;
+        &lt;span class="nt"&gt;ssl_protocols&lt;/span&gt; &lt;span class="nt"&gt;TLSv1&lt;/span&gt; &lt;span class="nt"&gt;TLSv1&lt;/span&gt;&lt;span class="nc"&gt;.1&lt;/span&gt; &lt;span class="nt"&gt;TLSv1&lt;/span&gt;&lt;span class="nc"&gt;.2&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt;
+        &lt;span class="nt"&gt;ssl_prefer_server_ciphers&lt;/span&gt; &lt;span class="nt"&gt;on&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt;
+        &lt;span class="nt"&gt;ssl_dhparam&lt;/span&gt; &lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;etc&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;ssl&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;certs&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;dhparam&lt;/span&gt;&lt;span class="nc"&gt;.pem&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt;
+        &lt;span class="nt"&gt;ssl_ciphers&lt;/span&gt; &lt;span class="s1"&gt;'ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-DSS-AES128-GCM-SHA256:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:DHE-RSA-AES256-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:AES:CAMELLIA:DES-CBC3-SHA:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!aECDH:!EDH-DSS-DES-CBC3-SHA:!EDH-RSA-DES-CBC3-SHA:!KRB5-DES-CBC3-SHA'&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt;
+        &lt;span class="nt"&gt;ssl_session_timeout&lt;/span&gt; &lt;span class="nt"&gt;1d&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt;
+        &lt;span class="nt"&gt;ssl_session_cache&lt;/span&gt; &lt;span class="nt"&gt;shared&lt;/span&gt;&lt;span class="nd"&gt;:SSL:50m&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt;
+        &lt;span class="nt"&gt;ssl_stapling&lt;/span&gt; &lt;span class="nt"&gt;on&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt;
+        &lt;span class="nt"&gt;ssl_stapling_verify&lt;/span&gt; &lt;span class="nt"&gt;on&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt;
+        &lt;span class="nt"&gt;add_header&lt;/span&gt; &lt;span class="nt"&gt;Strict-Transport-Security&lt;/span&gt; &lt;span class="nt"&gt;max-age&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="nt"&gt;15768000&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt;
+
+
+        &lt;span class="nt"&gt;root&lt;/span&gt; &lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;usr&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;share&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;www&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt;
+        &lt;span class="nt"&gt;index&lt;/span&gt; &lt;span class="nt"&gt;index&lt;/span&gt;&lt;span class="nc"&gt;.html&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt;
+
+        &lt;span class="nt"&gt;access_log&lt;/span&gt; &lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;usr&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;share&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;www&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;logs&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;access&lt;/span&gt;&lt;span class="nc"&gt;.log&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt;
+        &lt;span class="nt"&gt;error_log&lt;/span&gt; &lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;usr&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;share&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;www&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;logs&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;error&lt;/span&gt;&lt;span class="nc"&gt;.log&lt;/span&gt; &lt;span class="nt"&gt;error&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt;
+
+        &lt;span class="nt"&gt;location&lt;/span&gt; &lt;span class="o"&gt;/&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+                &lt;span class="err"&gt;#&lt;/span&gt; &lt;span class="n"&gt;First&lt;/span&gt; &lt;span class="n"&gt;attempt&lt;/span&gt; &lt;span class="n"&gt;to&lt;/span&gt; &lt;span class="n"&gt;serve&lt;/span&gt; &lt;span class="n"&gt;request&lt;/span&gt; &lt;span class="n"&gt;as&lt;/span&gt; &lt;span class="n"&gt;file&lt;/span&gt;&lt;span class="o"&gt;,&lt;/span&gt; &lt;span class="n"&gt;then&lt;/span&gt;
+                &lt;span class="err"&gt;#&lt;/span&gt; &lt;span class="n"&gt;as&lt;/span&gt; &lt;span class="n"&gt;directory&lt;/span&gt;&lt;span class="o"&gt;,&lt;/span&gt; &lt;span class="n"&gt;then&lt;/span&gt; &lt;span class="n"&gt;fall&lt;/span&gt; &lt;span class="n"&gt;back&lt;/span&gt; &lt;span class="n"&gt;to&lt;/span&gt; &lt;span class="n"&gt;displaying&lt;/span&gt; &lt;span class="n"&gt;a&lt;/span&gt; &lt;span class="m"&gt;404&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;
+                &lt;span class="n"&gt;try_files&lt;/span&gt; &lt;span class="err"&gt;$&lt;/span&gt;&lt;span class="n"&gt;uri&lt;/span&gt; &lt;span class="err"&gt;$&lt;/span&gt;&lt;span class="n"&gt;uri&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="m"&gt;404&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt;
+
+        &lt;span class="nt"&gt;location&lt;/span&gt; &lt;span class="o"&gt;~&lt;/span&gt; &lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nc"&gt;.well-known&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+                &lt;span class="n"&gt;allow&lt;/span&gt; &lt;span class="n"&gt;all&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt;
+
+        &lt;span class="nt"&gt;location&lt;/span&gt; &lt;span class="o"&gt;~&lt;/span&gt; &lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="err"&gt;\&lt;/span&gt;&lt;span class="nc"&gt;.ht&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+                &lt;span class="n"&gt;deny&lt;/span&gt;  &lt;span class="n"&gt;all&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt;
+&lt;span class="err"&gt;}&lt;/span&gt;
+&lt;/pre&gt;
+
+
+&lt;h4&gt;References&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href="https://www.digitalocean.com/community/tutorials/how-to-secure-nginx-with-let-s-encrypt-on-ubuntu-14-04"&gt;How To Secure Nginx with Let's Encrypt on Ubuntu 14.04&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="https://certbot.eff.org/#debianjessie-nginx"&gt;Certbot for Debian Jessie&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="http://www.tecmint.com/nginx-web-server-security-hardening-and-performance-tips/"&gt;Hardening NGINX&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="https://wiki.debian.org/Backports"&gt;Debian Backports&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/div&gt;</description><category>letsencrypt</category><category>nginx</category><guid>https://blog.itoaster.net/posts/letsencrypt-install-and-renewal/</guid><pubDate>Sun, 25 Sep 2016 13:56:37 GMT</pubDate></item></channel></rss>

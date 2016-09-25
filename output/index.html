@@ -67,7 +67,105 @@
             <p class="dateline"><a href="posts/letsencrypt-install-and-renewal/" rel="bookmark"><time class="published dt-published" datetime="2016-09-25T13:56:37Z" title="2016-09-25 13:56">2016-09-25 13:56</time></a></p>
         </div>
     </header><div class="e-content entry-content">
-    <p>Write your post here.</p>
+    <div>
+<h3>Certbot</h3>
+<p>On my server I needed to add <code>jessie-backports</code> to the <code>/etc/apt/sources.list</code>.</p>
+<pre class="code literal-block"><span></span><span class="nb">echo</span> <span class="s2">"deb http://httpredir.debian.org/debian jessie-backports main contrib non-free"</span> &gt;&gt; <span class="s1">'/etc/apt/sources.list'</span>
+</pre>
+
+
+<p>and run this afterwards.</p>
+<pre class="code literal-block"><span></span>sudo apt-get install certbot -t jessie-backports
+</pre>
+
+
+<h3>Nginx</h3>
+<p>Make sure the file <code>.well-known</code> is reachable via <code>location</code>.</p>
+<pre class="code literal-block"><span></span>certbot certonly -a webroot --webroot-path<span class="o">=</span>/usr/share/www/itoaster -d itoaster.net -d www.itoaster.net
+</pre>
+
+
+<p>this will create the directory in your webroot thats why it needs to be reachable. </p>
+<p><strong>Cert Location</strong> <code>/etc/letsencrypt/live/itoaster.net/</code></p>
+<p>Its also a good idea to allow Diffie Hellmann keys so lets generate one:</p>
+<pre class="code literal-block"><span></span>sudo openssl dhparam -out /etc/ssl/certs/dhparam.pem 2048
+</pre>
+
+
+<p>Lets take a look at the server config file under <code>sites-available</code>.</p>
+<pre class="code literal-block"><span></span><span class="nt">server</span> <span class="p">{</span>
+        <span class="n">listen</span> <span class="m">80</span><span class="p">;</span>
+        <span class="err">#</span> <span class="n">Block</span> <span class="n">some</span> <span class="n">agents</span>
+        <span class="n">if</span> <span class="p">(</span><span class="err">$</span><span class="n">blockedagent</span><span class="p">)</span> <span class="err">{</span>
+                <span class="n">return</span> <span class="m">403</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="err">#</span> <span class="nt">Disable</span> <span class="nt">all</span> <span class="nt">except</span> <span class="nt">GET</span> <span class="nt">HEAD</span> <span class="nt">and</span> <span class="nt">POST</span>
+        <span class="nt">if</span> <span class="o">($</span><span class="nt">request_method</span> <span class="o">!~</span> <span class="o">^(</span><span class="nt">GET</span><span class="o">|</span><span class="nt">HEAD</span><span class="o">|</span><span class="nt">POST</span><span class="o">)$)</span> <span class="p">{</span>
+                <span class="n">return</span> <span class="m">444</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="nt">server_name</span> <span class="nt">itoaster</span><span class="nc">.net</span> <span class="nt">www</span><span class="nc">.itoaster.net</span><span class="o">;</span>
+        <span class="nt">return</span> <span class="nt">301</span> <span class="nt">https</span><span class="o">://$</span><span class="nt">host</span><span class="o">$</span><span class="nt">request_uri</span><span class="o">;</span>
+<span class="err">}</span>
+
+<span class="nt">server</span> <span class="p">{</span>
+        <span class="err">#</span> <span class="n">SSL</span> <span class="n">configuration</span>
+        <span class="err">#</span>
+        <span class="err">#</span> <span class="n">Block</span> <span class="n">some</span> <span class="n">agents</span>
+        <span class="n">if</span> <span class="p">(</span><span class="err">$</span><span class="n">blockedagent</span><span class="p">)</span> <span class="err">{</span>
+                <span class="n">return</span> <span class="m">403</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="err">#</span> <span class="nt">Disable</span> <span class="nt">all</span> <span class="nt">except</span> <span class="nt">GET</span> <span class="nt">HEAD</span> <span class="nt">and</span> <span class="nt">POST</span>
+        <span class="nt">if</span> <span class="o">($</span><span class="nt">request_method</span> <span class="o">!~</span> <span class="o">^(</span><span class="nt">GET</span><span class="o">|</span><span class="nt">HEAD</span><span class="o">|</span><span class="nt">POST</span><span class="o">)$)</span> <span class="p">{</span>
+                <span class="n">return</span> <span class="m">444</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="nt">listen</span> <span class="nt">443</span> <span class="nt">ssl</span><span class="o">;</span>
+        <span class="nt">listen</span> <span class="cp">[</span><span class="p">::</span><span class="cp">]</span><span class="nd">:443</span> <span class="nt">ssl</span><span class="o">;</span>
+        <span class="nt">server_name</span> <span class="nt">itoaster</span><span class="nc">.net</span> <span class="nt">www</span><span class="nc">.itoaster.net</span><span class="o">;</span>
+        <span class="nt">ssl_certificate</span> <span class="o">/</span><span class="nt">etc</span><span class="o">/</span><span class="nt">letsencrypt</span><span class="o">/</span><span class="nt">live</span><span class="o">/</span><span class="nt">itoaster</span><span class="nc">.net</span><span class="o">/</span><span class="nt">fullchain</span><span class="nc">.pem</span><span class="o">;</span>
+        <span class="nt">ssl_certificate_key</span> <span class="o">/</span><span class="nt">etc</span><span class="o">/</span><span class="nt">letsencrypt</span><span class="o">/</span><span class="nt">live</span><span class="o">/</span><span class="nt">itoaster</span><span class="nc">.net</span><span class="o">/</span><span class="nt">privkey</span><span class="nc">.pem</span><span class="o">;</span>
+        <span class="nt">ssl_protocols</span> <span class="nt">TLSv1</span> <span class="nt">TLSv1</span><span class="nc">.1</span> <span class="nt">TLSv1</span><span class="nc">.2</span><span class="o">;</span>
+        <span class="nt">ssl_prefer_server_ciphers</span> <span class="nt">on</span><span class="o">;</span>
+        <span class="nt">ssl_dhparam</span> <span class="o">/</span><span class="nt">etc</span><span class="o">/</span><span class="nt">ssl</span><span class="o">/</span><span class="nt">certs</span><span class="o">/</span><span class="nt">dhparam</span><span class="nc">.pem</span><span class="o">;</span>
+        <span class="nt">ssl_ciphers</span> <span class="s1">'ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-DSS-AES128-GCM-SHA256:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:DHE-RSA-AES256-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:AES:CAMELLIA:DES-CBC3-SHA:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!aECDH:!EDH-DSS-DES-CBC3-SHA:!EDH-RSA-DES-CBC3-SHA:!KRB5-DES-CBC3-SHA'</span><span class="o">;</span>
+        <span class="nt">ssl_session_timeout</span> <span class="nt">1d</span><span class="o">;</span>
+        <span class="nt">ssl_session_cache</span> <span class="nt">shared</span><span class="nd">:SSL:50m</span><span class="o">;</span>
+        <span class="nt">ssl_stapling</span> <span class="nt">on</span><span class="o">;</span>
+        <span class="nt">ssl_stapling_verify</span> <span class="nt">on</span><span class="o">;</span>
+        <span class="nt">add_header</span> <span class="nt">Strict-Transport-Security</span> <span class="nt">max-age</span><span class="o">=</span><span class="nt">15768000</span><span class="o">;</span>
+
+
+        <span class="nt">root</span> <span class="o">/</span><span class="nt">usr</span><span class="o">/</span><span class="nt">share</span><span class="o">/</span><span class="nt">www</span><span class="o">;</span>
+        <span class="nt">index</span> <span class="nt">index</span><span class="nc">.html</span><span class="o">;</span>
+
+        <span class="nt">access_log</span> <span class="o">/</span><span class="nt">usr</span><span class="o">/</span><span class="nt">share</span><span class="o">/</span><span class="nt">www</span><span class="o">/</span><span class="nt">logs</span><span class="o">/</span><span class="nt">access</span><span class="nc">.log</span><span class="o">;</span>
+        <span class="nt">error_log</span> <span class="o">/</span><span class="nt">usr</span><span class="o">/</span><span class="nt">share</span><span class="o">/</span><span class="nt">www</span><span class="o">/</span><span class="nt">logs</span><span class="o">/</span><span class="nt">error</span><span class="nc">.log</span> <span class="nt">error</span><span class="o">;</span>
+
+        <span class="nt">location</span> <span class="o">/</span> <span class="p">{</span>
+                <span class="err">#</span> <span class="n">First</span> <span class="n">attempt</span> <span class="n">to</span> <span class="n">serve</span> <span class="n">request</span> <span class="n">as</span> <span class="n">file</span><span class="o">,</span> <span class="n">then</span>
+                <span class="err">#</span> <span class="n">as</span> <span class="n">directory</span><span class="o">,</span> <span class="n">then</span> <span class="n">fall</span> <span class="n">back</span> <span class="n">to</span> <span class="n">displaying</span> <span class="n">a</span> <span class="m">404</span><span class="o">.</span>
+                <span class="n">try_files</span> <span class="err">$</span><span class="n">uri</span> <span class="err">$</span><span class="n">uri</span><span class="o">/</span> <span class="o">=</span><span class="m">404</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="nt">location</span> <span class="o">~</span> <span class="o">/</span><span class="nc">.well-known</span> <span class="p">{</span>
+                <span class="n">allow</span> <span class="n">all</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="nt">location</span> <span class="o">~</span> <span class="o">/</span><span class="err">\</span><span class="nc">.ht</span> <span class="p">{</span>
+                <span class="n">deny</span>  <span class="n">all</span><span class="p">;</span>
+        <span class="p">}</span>
+<span class="err">}</span>
+</pre>
+
+
+<h4>References</h4>
+<ul>
+<li><a href="https://www.digitalocean.com/community/tutorials/how-to-secure-nginx-with-let-s-encrypt-on-ubuntu-14-04">How To Secure Nginx with Let's Encrypt on Ubuntu 14.04</a></li>
+<li><a href="https://certbot.eff.org/#debianjessie-nginx">Certbot for Debian Jessie</a></li>
+<li><a href="http://www.tecmint.com/nginx-web-server-security-hardening-and-performance-tips/">Hardening NGINX</a></li>
+<li><a href="https://wiki.debian.org/Backports">Debian Backports</a></li>
+</ul>
+</div>
     </div>
     </article>
 </div>
